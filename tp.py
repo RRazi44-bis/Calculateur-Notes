@@ -1,13 +1,17 @@
-import tkinter as tk
 import matplotlib.pyplot as plt
+import pickle
+import tkinter as tk
+
+from tkinter import ttk
 
 from PIL import Image,ImageTk
-from tkinter import Canvas
-from tkinter import ttk
+
+import time
 
 fenetre = tk.Tk()
 fenetre.title("Calculateur de moyenne d'UE")
 fenetre.geometry("1280x720")
+
 frm = ttk.Frame(fenetre)
 frm.grid()
 
@@ -90,28 +94,29 @@ UE3_COEFF={
 }
 
 NOTE = {
-    "R101":  -1,
-    "R102":  -1,
-    "R103":  -1,
-    "R104":  -1,
-    "R105":  -1,
-    "R006":  -1,
-    "R107":  -1,
-    "R108":  -1,
-    "R109":  -1,
-    "R110":  -1,
-    "R111":  -1,
-    "R112":  -1,
-    "R113":  -1,
-    "R114":  -1,
-    "R115":  -1,
-    "SAE11": -1,
-    "SAE12": -1,
-    "SAE13": -1,
-    "SAE14": -1,
-    "SAE15": -1,
-    "SAE16": -1
+    "R101":  0,
+    "R102":  0,
+    "R103":  0,
+    "R104":  0,
+    "R105":  0,
+    "R006":  0,
+    "R107":  0,
+    "R108":  0,
+    "R109":  0,
+    "R110":  0,
+    "R111":  0,
+    "R112":  0,
+    "R113":  0,
+    "R114":  0,
+    "R115":  0,
+    "SAE11": 0,
+    "SAE12": 0,
+    "SAE13": 0,
+    "SAE14": 0,
+    "SAE15": 0,
+    "SAE16": 0 
 }
+
 
 def average_note(note_dict, ue):
     """
@@ -129,6 +134,7 @@ def average_note(note_dict, ue):
         somme = somme + note * coeff
         nb_elt = nb_elt + coeff
     average = somme/nb_elt
+    
     return average
 
 
@@ -153,7 +159,7 @@ def get_colors(values):
     return colors
 
 
-def display_result(names, values):
+def display_figure(names, values):
     """
     This function display the result in barre, with the names and values from parameters
     In: names, values: list.
@@ -166,22 +172,43 @@ def display_result(names, values):
     axes = plt.clf()
     axes = plt.gca()
     axes.set_ylim(0, 20)
+    
     colors = get_colors(values)
+    
     plt.bar(names, values, color=colors)
     plt.savefig("graphic.jpg")
+    
     # Chargement et conversion de l'image avec Pillow
     image = Image.open("graphic.jpg")
-    image = image.resize((300,200))
+    image = image.resize((640,480))
     
     photo = ImageTk.PhotoImage(image)
     
     # Création du Label avec l'image
-    canva = tk.Canvas(fenetre, width=300, height=200)
+    canva = tk.Canvas(fenetre, width=640, height=480)
     canva.grid(column=2,row=0)
     
     canva.create_image(0, 0, image=photo, anchor="nw")
 
+
+def calcul_fichier():
+    global NOTE
+    with open('donnees', 'rb') as fichier:
+        unpickler = pickle.Unpickler(fichier)
+        NOTE = unpickler.load()
+    calcul(NOTE)
+
+
+def calcul_avec_note(NOTE):
+    note_ue1 = average_note(NOTE, UE1_COEFF)
+    note_ue2 = average_note(NOTE, UE2_COEFF)
+    note_ue3 = average_note(NOTE, UE3_COEFF)
+
+    display_figure(["UE1", "UE2", "UE3"],[note_ue1, note_ue2, note_ue3])
+
+
 def calcul():
+    global NOTE
     i=0
     for entry in list_entry:
         NOTE[list_module[i]] = float(entry.get())
@@ -190,19 +217,42 @@ def calcul():
     note_ue2 = average_note(NOTE, UE2_COEFF)
     note_ue3 = average_note(NOTE, UE3_COEFF)
 
-    display_result(["UE1", "UE2", "UE3"],[note_ue1, note_ue2, note_ue3])
+    list_note = [note_ue1, note_ue2, note_ue3]
+    
+    with open("donnees", "wb") as file:
+        obj_pickle = pickle.Pickler(file)
+        obj_pickle.dump(list_note)
+    
+
+    with open('donnees', 'rb') as fichier:
+        unpickler = pickle.Unpickler(fichier)
+        list_note = unpickler.load()
+        
+    print(list_note)
+
+    note_ue1 = list_note[0]
+    note_ue2 = list_note[1]
+    note_ue3 = list_note[2]
+    
+    display_figure(["UE1", "UE2", "UE3"],[note_ue1, note_ue2, note_ue3])
 
 
-for i in range(len(list_module)):
-    texte1 = ttk.Label(frm, text=list_module[i])
-    entry  = ttk.Entry(frm)
-    list_entry.append(entry)
-    texte1.grid(column=0,row=i)
-    entry.grid(column=1,row=i)
-
-button = ttk.Button(frm, text="Calculer", command=calcul)
-button.grid(column=2, row=0)
-
-fenetre.mainloop()
+def display_entry():
+    for i in range(len(list_module)):
+        texte = ttk.Label(frm, text=list_module[i])
+        entry = ttk.Entry(frm)
+        
+        texte.grid(column=0,row=i)
+        entry.grid(column=1,row=i)
+    
+        list_entry.append(entry)    
 
 
+if __name__ == "__main__":    
+    display_entry()
+    button = ttk.Button(frm, text="Calculer", command=calcul)
+    button.grid(column=2, row=0)
+    
+    fenetre.mainloop()
+    
+# Calcul -> 
